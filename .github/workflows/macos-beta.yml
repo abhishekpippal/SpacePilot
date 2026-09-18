@@ -1,0 +1,136 @@
+name: macOS Beta App
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main", "master"]
+  push:
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+
+jobs:
+  macos-beta:
+    name: Build macOS beta app
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Frontend TypeScript
+        run: npm run check
+
+      - name: Frontend tests
+        run: npm test
+
+      - name: Frontend production build
+        run: npm run build
+
+      - name: Rust format
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+      - name: Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml -j 1
+
+      - name: Rust check
+        run: cargo check --manifest-path src-tauri/Cargo.toml -j 1
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+
+      - name: Backend format check
+        run: python -m ruff format --check backend
+
+      - name: Backend lint
+        run: python -m ruff check backend
+
+      - name: Backend tests
+        run: python -m pytest backend/tests
+
+      - name: Build macOS app bundle
+        run: npm run tauri:build -- --bundles app
+
+      - name: Package app bundle and checksum
+        id: app
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t apps < <(find src-tauri/target/release/bundle/macos -maxdepth 1 -name "SpacePilot.app" -type d)
+          if [ "${#apps[@]}" -ne 1 ]; then
+            echo "Expected exactly one SpacePilot.app bundle, found ${#apps[@]}." >&2
+            find src-tauri/target/release/bundle -maxdepth 3 -print || true
+            exit 1
+          fi
+          version="$(node -p "require('./package.json').version")"
+          zip_name="SpacePilot_${version}_macOS_unsigned_beta.zip"
+          ditto -c -k --sequesterRsrc --keepParent "${apps[0]}" "$zip_name"
+          sha256="$(shasum -a 256 "$zip_name" | awk '{print $1}')"
+          size="$(stat -f%z "$zip_name")"
+          mib="$(ZIP_NAME="$zip_name" python - <<'PY'
+          import os
+          print(round(os.path.getsize(os.environ["ZIP_NAME"]) / 1024 / 1024, 2))
+          PY
+          )"
+          echo "$sha256  $zip_name" > SHA256SUMS-macos.txt
+          echo "path=$zip_name" >> "$GITHUB_OUTPUT"
+          echo "name=$zip_name" >> "$GITHUB_OUTPUT"
+          echo "size=$size" >> "$GITHUB_OUTPUT"
+          echo "mib=$mib" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+      - name: Upload macOS beta artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacepilot-macos-beta
+          path: |
+            ${{ steps.app.outputs.path }}
+            SHA256SUMS-macos.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Job summary
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          # SpacePilot macOS Beta Build
+
+          Git commit: $GITHUB_SHA
+          Version: $version
+
+          Frontend validation: PASS
+          Rust validation: PASS
+          Backend validation: PASS
+
+          Artifact: ${{ steps.app.outputs.name }}
+          Size: ${{ steps.app.outputs.size }} bytes / ${{ steps.app.outputs.mib }} MiB
+          SHA-256: ${{ steps.app.outputs.sha256 }}
+
+          Signing: UNSIGNED BETA
+          Notarization: NOT ENABLED
+          EOF
