@@ -1,0 +1,15 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SpacePilot">
+  <defs>
+    <linearGradient id="space" x1="130" y1="90" x2="900" y2="950" gradientUnits="userSpaceOnUse"><stop stop-color="#171B39"/><stop offset="1" stop-color="#070915"/></linearGradient>
+    <linearGradient id="trail" x1="270" y1="755" x2="730" y2="270" gradientUnits="userSpaceOnUse"><stop stop-color="#6CE4D1"/><stop offset=".52" stop-color="#8575F2"/><stop offset="1" stop-color="#D9D1FF"/></linearGradient>
+    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="16" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect x="52" y="52" width="920" height="920" rx="216" fill="url(#space)"/>
+  <circle cx="512" cy="512" r="395" fill="none" stroke="#AFA2FF" stroke-opacity=".18" stroke-width="3"/>
+  <path d="M228 738C361 705 510 587 749 274" fill="none" stroke="url(#trail)" stroke-width="30" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M514 294c81 62 131 161 131 272 0 35-5 69-16 101l-117-67-117 67c-11-32-16-66-16-101 0-111 50-210 131-272l-14-71z" fill="#F5F3FF"/>
+  <path d="M512 402c42 34 67 83 67 139 0 20-3 39-9 58l-58-34-58 34c-6-19-9-38-9-58 0-56 25-105 67-139z" fill="#242A5B"/>
+  <path d="M512 425v121" stroke="#8C7CF4" stroke-width="19" stroke-linecap="round"/>
+  <path d="M365 697l-69 48 120-9M659 697l69 48-120-9" fill="none" stroke="#C8C0FF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="772" cy="249" r="16" fill="#75E3D0"/><circle cx="238" cy="352" r="10" fill="#B3A8FF"/>
+</svg>

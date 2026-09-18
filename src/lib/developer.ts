@@ -1,0 +1,5 @@
+import type { DeveloperStorageFinding } from "../types";
+export type DeveloperSort="size"|"category"|"confidence"|"modified";
+const family=(category:string)=>category.startsWith("NODE")?"Node.js":category.includes("PYTHON")||category.includes("CONDA")?"Python":category.includes("RUST")?"Rust":category.includes("JAVA")?"Java":category.includes("DOTNET")?".NET":category.includes("AI_MODEL")?"AI/ML":category.includes("DOCKER")?"Docker":category.includes("WSL")||category.includes("VM_")?"VM/WSL":category.includes("CACHE")?"Caches":category.includes("BUILD")?"Build artifacts":"Other";
+export const developerFamily=family;
+export function filterDeveloperFindings(items:DeveloperStorageFinding[],filter:string,sort:DeveloperSort){const rank={HIGH:3,MEDIUM:2,LOW:1};return items.filter(item=>filter==="All"||family(item.category)===filter).slice().sort((a,b)=>sort==="category"?a.category.localeCompare(b.category)||b.size_bytes-a.size_bytes:sort==="confidence"?rank[b.confidence]-rank[a.confidence]||b.size_bytes-a.size_bytes:sort==="modified"?(b.modified??"").localeCompare(a.modified??""):b.size_bytes-a.size_bytes)}

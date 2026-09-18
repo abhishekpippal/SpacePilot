@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: spacepilot-staging-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: DATABASE_URL
+        fromDatabase:
+          name: spacepilot-staging-db
+          property: connectionString
+      - key: JWT_SIGNING_SECRET
+        sync: false
+      - key: ENTITLEMENT_SIGNING_PRIVATE_KEY
+        sync: false
+      - key: FORWARDED_ALLOW_IPS
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_PRO_MONTHLY
+        sync: false
+      - key: STRIPE_PRICE_PRO_ANNUAL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+databases:
+  - name: spacepilot-staging-db
+    databaseName: spacepilot_staging
+    user: spacepilot_staging

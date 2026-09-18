@@ -1,0 +1,16 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  not-yet-enabled:
+    name: Release publishing disabled
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "GitHub Release publishing is intentionally disabled for private beta preparation."
+          echo "Use .github/workflows/windows-beta.yml to build unsigned MSI artifacts."
