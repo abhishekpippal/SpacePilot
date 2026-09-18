@@ -411,19 +411,43 @@ mod tests {
             is_directory: false,
         }
     }
+    fn synthetic_root() -> PathBuf {
+        if cfg!(windows) {
+            PathBuf::from("C:\\scan")
+        } else {
+            PathBuf::from("/scan")
+        }
+    }
+    fn synthetic_path(parts: &[&str]) -> String {
+        let mut path = synthetic_root();
+        for part in parts {
+            path.push(part);
+        }
+        path.to_string_lossy().into_owned()
+    }
     #[test]
     fn aggregates_descendants_without_double_counting() {
-        let root = Path::new("C:\\scan");
+        let root = synthetic_root();
         let sizes = aggregate_directory_sizes(
-            root,
+            &root,
             &[
-                file("C:\\scan\\a\\one.bin", 10),
-                file("C:\\scan\\a\\b\\two.bin", 20),
+                file(&synthetic_path(&["a", "one.bin"]), 10),
+                file(&synthetic_path(&["a", "b", "two.bin"]), 20),
             ],
         );
-        assert_eq!(sizes["C:\\scan"], 30);
-        assert_eq!(sizes["C:\\scan\\a"], 30);
-        assert_eq!(sizes["C:\\scan\\a\\b"], 20);
+        assert_eq!(sizes[root.to_string_lossy().as_ref()], 30);
+        assert_eq!(
+            sizes[synthetic_root().join("a").to_string_lossy().as_ref()],
+            30
+        );
+        assert_eq!(
+            sizes[synthetic_root()
+                .join("a")
+                .join("b")
+                .to_string_lossy()
+                .as_ref()],
+            20
+        );
     }
     #[test]
     fn used_space_never_underflows() {
@@ -433,22 +457,37 @@ mod tests {
 
     #[test]
     fn aggregation_ignores_files_outside_scope_and_handles_empty_input() {
-        let root = Path::new("C:\\scan");
-        let sizes = aggregate_directory_sizes(root, &[file("D:\\outside\\file.bin", 50)]);
+        let root = synthetic_root();
+        let outside = if cfg!(windows) {
+            "D:\\outside\\file.bin".to_string()
+        } else {
+            "/outside/file.bin".to_string()
+        };
+        let sizes = aggregate_directory_sizes(&root, &[file(&outside, 50)]);
         assert_eq!(sizes.len(), 1);
-        assert_eq!(sizes["C:\\scan"], 0);
-        assert_eq!(aggregate_directory_sizes(root, &[])["C:\\scan"], 0);
+        assert_eq!(sizes[root.to_string_lossy().as_ref()], 0);
+        assert_eq!(
+            aggregate_directory_sizes(&root, &[])[root.to_string_lossy().as_ref()],
+            0
+        );
     }
 
     #[test]
     fn aggregates_large_deep_file_sets() {
-        let root = Path::new("C:\\scan");
+        let root = synthetic_root();
         let files: Vec<_> = (0..100_000)
-            .map(|index| file(&format!("C:\\scan\\a\\b\\{index}.bin"), 7))
+            .map(|index| file(&synthetic_path(&["a", "b", &format!("{index}.bin")]), 7))
             .collect();
-        let sizes = aggregate_directory_sizes(root, &files);
-        assert_eq!(sizes["C:\\scan"], 700_000);
-        assert_eq!(sizes["C:\\scan\\a\\b"], 700_000);
+        let sizes = aggregate_directory_sizes(&root, &files);
+        assert_eq!(sizes[root.to_string_lossy().as_ref()], 700_000);
+        assert_eq!(
+            sizes[synthetic_root()
+                .join("a")
+                .join("b")
+                .to_string_lossy()
+                .as_ref()],
+            700_000
+        );
     }
 
     #[test]
@@ -518,12 +557,12 @@ mod tests {
 
     #[test]
     fn directory_aggregation_can_be_cancelled_without_partial_sizes_becoming_results() {
-        let root = Path::new("C:\\scan");
+        let root = synthetic_root();
         let files: Vec<_> = (0..2_000)
-            .map(|index| file(&format!("C:\\scan\\deep\\{index}.bin"), 1))
+            .map(|index| file(&synthetic_path(&["deep", &format!("{index}.bin")]), 1))
             .collect();
         let checks = std::sync::atomic::AtomicUsize::new(0);
-        let (_, cancelled) = aggregate_directory_sizes_cancellable(root, &files, || {
+        let (_, cancelled) = aggregate_directory_sizes_cancellable(&root, &files, || {
             checks.fetch_add(1, Ordering::Relaxed) >= 2
         });
         assert!(cancelled);

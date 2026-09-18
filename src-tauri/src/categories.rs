@@ -31,7 +31,10 @@ pub fn protected(path: &std::path::Path) -> bool {
     ];
     path.components().any(|component| {
         let value = component.as_os_str().to_string_lossy().to_ascii_lowercase();
-        PROTECTED_COMPONENTS.contains(&value.as_str())
+        value
+            .split(['\\', '/'])
+            .map(|part| part.trim_end_matches(':'))
+            .any(|part| PROTECTED_COMPONENTS.contains(&part))
     })
 }
 
