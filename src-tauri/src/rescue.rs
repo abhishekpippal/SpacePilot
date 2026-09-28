@@ -65,11 +65,10 @@ fn is_installer(file: &FileEntry) -> bool {
     }
     let extension = file.extension.to_ascii_lowercase();
     let name = file.name.to_ascii_lowercase();
-    let in_downloads = Path::new(&file.path).components().any(|part| {
-        part.as_os_str()
-            .to_string_lossy()
-            .eq_ignore_ascii_case("downloads")
-    });
+    let in_downloads = file
+        .path
+        .split(['\\', '/'])
+        .any(|part| part.eq_ignore_ascii_case("downloads"));
     in_downloads
         && matches!(extension.as_str(), "msi" | "msp" | "exe")
         && (extension != "exe"

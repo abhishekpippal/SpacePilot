@@ -882,12 +882,22 @@ mod tests {
         fs::write(&inside, b"safe fixture").unwrap();
         fs::write(&outside, b"outside fixture").unwrap();
         let canonical_root = root.canonicalize().unwrap();
-        assert!(
-            validate_delete_candidate(&canonical_root, &inside, &scanned(&inside), None).is_ok()
-        );
-        assert!(
-            validate_delete_candidate(&canonical_root, &outside, &scanned(&outside), None).is_err()
-        );
+        let canonical_inside = inside.canonicalize().unwrap();
+        let canonical_outside = outside.canonicalize().unwrap();
+        assert!(validate_delete_candidate(
+            &canonical_root,
+            &canonical_inside,
+            &scanned(&canonical_inside),
+            None,
+        )
+        .is_ok());
+        assert!(validate_delete_candidate(
+            &canonical_root,
+            &canonical_outside,
+            &scanned(&canonical_outside),
+            None,
+        )
+        .is_err());
         assert!(inside.exists());
         assert!(outside.exists());
         let _ = fs::remove_dir_all(base);
