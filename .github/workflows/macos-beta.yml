@@ -112,15 +112,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t apps < <(find src-tauri/target/release/bundle/macos -maxdepth 1 -name "SpacePilot.app" -type d)
-          if [ "${#apps[@]}" -ne 1 ]; then
-            echo "Expected exactly one SpacePilot.app bundle, found ${#apps[@]}." >&2
+          app_path="src-tauri/target/release/bundle/macos/SpacePilot.app"
+          if [ ! -d "$app_path" ]; then
+            echo "Expected SpacePilot.app at $app_path." >&2
             find src-tauri/target/release/bundle -maxdepth 3 -print || true
             exit 1
           fi
           version="$(node -p "require('./package.json').version")"
           zip_name="SpacePilot_${version}_macOS_unsigned_beta.zip"
-          ditto -c -k --sequesterRsrc --keepParent "${apps[0]}" "$zip_name"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_name"
           sha256="$(shasum -a 256 "$zip_name" | awk '{print $1}')"
           size="$(stat -f%z "$zip_name")"
           mib="$(python -c "import os; print(round(os.path.getsize('$zip_name') / 1024 / 1024, 2))")"
