@@ -1,12 +1,31 @@
 use crate::{categories, models::*};
 use std::path::Path;
+
+fn normalized_components(path: &str) -> Vec<String> {
+    path.replace('\\', "/")
+        .split('/')
+        .filter(|component| !component.is_empty())
+        .map(|component| component.trim_end_matches(':').to_ascii_lowercase())
+        .collect()
+}
+
+fn path_is_within(root: &str, candidate: &str) -> bool {
+    let root = normalized_components(root);
+    let candidate = normalized_components(candidate);
+    !root.is_empty()
+        && candidate.len() >= root.len()
+        && candidate
+            .iter()
+            .zip(root.iter())
+            .all(|(left, right)| left == right)
+}
+
 pub fn recommendations(files: &[FileEntry], root: &str) -> Vec<Recommendation> {
-    let root = Path::new(root);
     files
         .iter()
         .filter(|f| {
             let path = Path::new(&f.path);
-            !f.is_directory && path.starts_with(root) && !categories::protected(path)
+            !f.is_directory && path_is_within(root, &f.path) && !categories::protected(path)
         })
         .filter_map(|f| {
             if f.category == "Temporary" {

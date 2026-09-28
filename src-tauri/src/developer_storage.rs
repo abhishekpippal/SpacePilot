@@ -1,8 +1,5 @@
 use crate::models::*;
-use std::{
-    collections::{HashMap, HashSet},
-    path::Path,
-};
+use std::collections::{HashMap, HashSet};
 
 const GIB: u64 = 1024 * 1024 * 1024;
 
@@ -24,16 +21,16 @@ fn norm(path: &str) -> String {
         .to_ascii_lowercase()
 }
 fn base(path: &str) -> String {
-    Path::new(path)
-        .file_name()
+    norm(path)
+        .rsplit('\\')
+        .next()
         .unwrap_or_default()
-        .to_string_lossy()
         .to_ascii_lowercase()
 }
 fn parent(path: &str) -> String {
-    Path::new(path)
-        .parent()
-        .map(|p| norm(&p.to_string_lossy()))
+    norm(path)
+        .rsplit_once('\\')
+        .map(|(parent, _)| parent.to_string())
         .unwrap_or_default()
 }
 fn marker(files: &HashSet<String>, dir: &str, names: &[&str]) -> bool {
@@ -574,14 +571,15 @@ mod tests {
     }
     use super::*;
     fn f(path: &str, size: u64) -> FileEntry {
+        let name = base(path);
         FileEntry {
             path: path.into(),
-            name: base(path),
-            extension: Path::new(path)
-                .extension()
-                .unwrap_or_default()
-                .to_string_lossy()
+            extension: name
+                .rsplit_once('.')
+                .map(|(_, ext)| ext)
+                .unwrap_or("")
                 .into(),
+            name,
             size,
             modified: None,
             category: "Other".into(),
