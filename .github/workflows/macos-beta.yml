@@ -72,6 +72,18 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Summarize macOS Rust test failure
+        if: failure() && steps.rust_tests.outputs.status != '0'
+        shell: bash
+        run: |
+          {
+            echo "## macOS Rust test failure"
+            echo
+            echo '```text'
+            tail -n 120 macos-rust-test.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Rust check
         run: cargo check --manifest-path src-tauri/Cargo.toml -j 1
 
