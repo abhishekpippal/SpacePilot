@@ -123,11 +123,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "${apps[0]}" "$zip_name"
           sha256="$(shasum -a 256 "$zip_name" | awk '{print $1}')"
           size="$(stat -f%z "$zip_name")"
-          mib="$(ZIP_NAME="$zip_name" python - <<'PY'
-          import os
-          print(round(os.path.getsize(os.environ["ZIP_NAME"]) / 1024 / 1024, 2))
-          PY
-          )"
+          mib="$(python -c "import os; print(round(os.path.getsize('$zip_name') / 1024 / 1024, 2))")"
           echo "$sha256  $zip_name" > SHA256SUMS-macos.txt
           echo "path=$zip_name" >> "$GITHUB_OUTPUT"
           echo "name=$zip_name" >> "$GITHUB_OUTPUT"
