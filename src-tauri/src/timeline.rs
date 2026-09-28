@@ -121,6 +121,33 @@ fn normalize_path(value: &str) -> String {
     }
 }
 
+fn path_components(value: &str) -> Vec<String> {
+    normalize_path(value)
+        .split('\\')
+        .filter(|component| !component.is_empty())
+        .map(|component| component.trim_end_matches(':').to_string())
+        .collect()
+}
+
+fn path_depth(path: &str) -> usize {
+    path_components(path).len()
+}
+
+fn path_name(path: &str) -> String {
+    path_components(path).pop().unwrap_or_default()
+}
+
+fn path_is_within(parent: &str, child: &str) -> bool {
+    let parent = path_components(parent);
+    let child = path_components(child);
+    !parent.is_empty()
+        && child.len() >= parent.len()
+        && child
+            .iter()
+            .zip(parent.iter())
+            .all(|(left, right)| left == right)
+}
+
 pub fn scope_identity(volume_root: &str, scan_root: &str) -> String {
     let input = format!(
         "{}\n{}",
@@ -488,10 +515,6 @@ fn category_changes(
     changes
 }
 
-fn path_depth(path: &str) -> usize {
-    Path::new(path).components().count()
-}
-
 fn developer_category_changes(
     previous: &StorageSnapshot,
     current: &StorageSnapshot,
@@ -558,11 +581,7 @@ fn directory_changes(
                 .map(|item| item.path.clone())
                 .unwrap_or(path);
             (delta.unsigned_abs() >= threshold).then(|| TimelineDelta {
-                name: Path::new(&display_path)
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .into_owned(),
+                name: path_name(&display_path),
                 path: Some(display_path),
                 delta_bytes: delta,
             })
@@ -588,7 +607,7 @@ fn directory_changes(
                     && item
                         .path
                         .as_deref()
-                        .is_some_and(|child| Path::new(child).starts_with(Path::new(path)))
+                        .is_some_and(|child| path_is_within(path, child))
             })
             .map(|item| item.delta_bytes as i128)
             .sum();
