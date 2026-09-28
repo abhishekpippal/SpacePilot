@@ -54,7 +54,23 @@ jobs:
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
 
       - name: Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml -j 1
+        id: rust_tests
+        shell: bash
+        run: |
+          set +e
+          cargo test --manifest-path src-tauri/Cargo.toml -j 1 2>&1 | tee macos-rust-test.log
+          status=${PIPESTATUS[0]}
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Upload macOS Rust test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-rust-test-log
+          path: macos-rust-test.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Rust check
         run: cargo check --manifest-path src-tauri/Cargo.toml -j 1
